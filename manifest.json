@@ -1,0 +1,11 @@
+{
+	"id": "lexicon",
+	"name": "Lexicon",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Obsidian plugin for language learning. Enables automatic creation of individual word or phrase definition notes, translating from/to configured languages.",
+	"author": "Lachlan Scott",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
