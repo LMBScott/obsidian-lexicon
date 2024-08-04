@@ -1,5 +1,4 @@
 import { App, Editor, MarkdownView, SuggestModal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { readdir } from 'node:fs/promises';
 
 // Remember to rename these classes and interfaces!
 
@@ -70,10 +69,12 @@ export default class ObsidianLexicon extends Plugin {
 	}
 
 	getDirFileCount(path: string) : number {
+		const fs = require('fs');
+
 		try {
-			(async () => await readdir(path)
-				.then((files) => { return files.length; })
-			)();
+			fs.readdir(path, (files: string[]) => {
+				return files.length;
+			});
 		} catch (err) {
 			console.error(err);
 			return -1;
