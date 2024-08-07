@@ -135,8 +135,8 @@ export default class ObsidianLexicon extends Plugin {
 	createWordNote(path: string, word: string, text: string)
 	{
 		if (this.fs.existsSync(path)) {
-			new Notice(`Note for word ${word} already exists.`);
-			console.log(`Note for word ${word} already exists.`);
+			new Notice(`Entry for word ${word} already exists.`);
+			console.log(`Entry for word ${word} already exists.`);
 			return;
 		}
 
@@ -146,6 +146,7 @@ export default class ObsidianLexicon extends Plugin {
 				return;
 			}
 
+			new Notice(`Created a new note for word: ${word}`);
 			console.log(`Created new note for word ${word}`);
 		});
 	}
