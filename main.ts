@@ -5,13 +5,11 @@ import { App, Editor, MarkdownView, SuggestModal, Notice, Plugin, PluginSettingT
 
 interface ObsidianLexiconSettings {
 	wordDir: string;
-	phraseDir: string;
 	dictName: string;
 }
 
 const DEFAULT_SETTINGS: ObsidianLexiconSettings = {
 	wordDir: 'words',
-	phraseDir: 'phrases',
 	dictName: 'fd-fra-eng'
 }
 
@@ -190,14 +188,6 @@ export default class ObsidianLexicon extends Plugin {
 		}
 	}
 
-	addWord() {
-		this.updateStatusBar();
-	}
-
-	addPhrase() {
-		this.updateStatusBar();
-	}
-
 	getDirFileCount(path: string) : number {
 		this.fs.readdir(path, (err: NodeJS.ErrnoException | null, files: string[]) => {
 			if (err) {
@@ -219,14 +209,7 @@ export default class ObsidianLexicon extends Plugin {
 			wordCount = 'N/A'
 		}
 
-		var phraseCount: number | string = this.getDirFileCount(this.settings.phraseDir);
-
-		if (phraseCount === -1) {
-			new Notice('Error getting phrase count from configured phrase directory.');
-			phraseCount = 'N/A';
-		}
-
-		this.statusBarItemEl.setText(`Words: ${wordCount} Phrases: ${phraseCount}`);
+		this.statusBarItemEl.setText(`Lexicon Words: ${wordCount}`);
 	}
 
 	async loadSettings() {
@@ -300,24 +283,6 @@ class ObsidianLexiconSettingsTab extends PluginSettingTab {
 					this.plugin.settings.wordDir = `${this.basePath}/${folder.path}`;
 
 					console.log(this.plugin.settings.wordDir);
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('Phrase Directory')
-			.setDesc('The directory containing all phrases in your lexicon. All notes here are assumed to be individual phrase definitions.')
-			.addText(text => text
-				.setPlaceholder('Enter the path to the phrase directory')
-				.setValue(this.plugin.settings.phraseDir)
-				.onChange(async (value) => {
-					const folder = this.app.vault.getFolderByPath(value);
-
-					if (folder === null) {
-						new Notice('Invalid path to word directory.');
-						return;
-					}
-
-					this.plugin.settings.phraseDir = `${this.basePath}/${folder.path}`;
 					await this.plugin.saveSettings();
 				}));
 
