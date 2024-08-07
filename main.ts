@@ -47,9 +47,14 @@ export default class ObsidianLexicon extends Plugin {
 				console.log(editor.getSelection());
 				const selection = editor.getSelection();
 
-				if (selection) {
-					this.addWordEntry(selection, editor);
+				if (selection.length < 1)
+				{
+					new Notice("Please select a word for which to create an entry.")
+					console.error("Empty selection")
+					return;
 				}
+
+				this.addWordEntry(selection, editor);
 			}
 		});
 
