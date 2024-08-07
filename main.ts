@@ -32,6 +32,7 @@ export default class ObsidianLexicon extends Plugin {
 		this.addCommand({
 			id: 'create-word-entry',
 			name: 'Create word entry',
+			hotkeys: undefined,
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				console.log(editor.getSelection());
 				const selection = editor.getSelection();
