@@ -16,8 +16,9 @@ const DEFAULT_SETTINGS: ObsidianLexiconSettings = {
 export default class ObsidianLexicon extends Plugin {
 	settings: ObsidianLexiconSettings;
 	statusBarItemEl: HTMLElement;
-	definitionFoundPattern = `\\d+ definitions? found\\n\\nFrom .+:\\n\\n`;
+	definitionFoundPattern = `\\d+ definitions? found\\n\\n`;
 	noDefinitionPattern = `No definitions found for ".+", perhaps you mean:\\n.+:  `;
+	definitionSourcePattern = `From .+:\\n\\n`
 	fs = require('fs');
 
 	async onload() {
@@ -57,30 +58,39 @@ export default class ObsidianLexicon extends Plugin {
 
 	tryParseDefinition(text: string): string | null
 	{
-		const lastIndex = this.getLastMatchIndex(this.definitionFoundPattern, text);
+		const matchBounds = this.getNextMatchBounds(this.definitionFoundPattern, text);
 
-		if (lastIndex === -1)
+		if (matchBounds === null)
 		{
 			console.error(`Definition output failed to match expected format.`);
 			return null;
 		}
-		
-		const definition = text.slice(lastIndex - 1).trim();
+
+		var definition = text.slice(matchBounds[1] - 1).trim();
+
+		var defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definition);
+
+		while (defSourceBounds !== null)
+		{
+			definition = definition.substring(0, defSourceBounds[0]) + definition.substring(defSourceBounds[1]);
+
+			defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definition);
+		}
 
 		return definition
 	}
 
 	tryParseWordSuggestions(text: string): string[] | null
 	{
-		const lastIndex = this.getLastMatchIndex(this.noDefinitionPattern, text);
+		const matchBounds = this.getNextMatchBounds(this.noDefinitionPattern, text);
 
-		if (lastIndex === -1)
+		if (matchBounds === null)
 		{
 			console.error(`Missing definition output failed to match expected format.`);
 			return null;
 		}
 
-		const suggestions = text.slice(lastIndex).split('  ');
+		const suggestions = text.slice(matchBounds[1]).split('  ');
 
 		return suggestions
 	}
@@ -133,6 +143,8 @@ export default class ObsidianLexicon extends Plugin {
 		editor.replaceSelection(word);
 
 		this.createWordNote(wordNotePath, word, definition);
+
+		this.updateStatusBar();
 	}
 
 	createWordNote(path: string, word: string, text: string)
@@ -154,17 +166,17 @@ export default class ObsidianLexicon extends Plugin {
 		});
 	}
 
-	getLastMatchIndex(pattern: string, input: string)
+	getNextMatchBounds(pattern: string, input: string): [number, number] | null
 	{
 		const regex = new RegExp(pattern, 'g');
 		const matchFound = regex.exec(input);
 
 		if (!matchFound)
 		{
-			return -1;
+			return null;
 		}
 
-		return regex.lastIndex;
+		return [regex.lastIndex - matchFound[0].length, regex.lastIndex];
 	}
 
 	getDictionaryResult(query: string): string | null {
