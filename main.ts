@@ -26,6 +26,11 @@ export default class ObsidianLexicon extends Plugin {
 
 		this.updateStatusBar();
 
+		// Check whether a lexicon entry was deleted whenever a file or folder is deleted
+		this.registerEvent(this.app.vault.on('delete', () => {
+			this.updateStatusBar()
+		}));
+
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
 			id: 'create-word-entry',
