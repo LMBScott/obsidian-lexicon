@@ -51,22 +51,84 @@ export default class ObsidianLexicon extends Plugin {
 		this.addSettingTab(new ObsidianLexiconSettingsTab(this.app, this));
 	}
 
+	tryParseDefinition(text: string): string | null
+	{
+		const lastIndex = this.getLastMatchIndex(this.definitionFoundPattern, text);
+
+		if (lastIndex === -1)
+		{
+			console.error(`Definition output failed to match expected format.`);
+			return null;
+		}
+		
+		const definition = text.slice(lastIndex - 1).trim();
+
+		return definition
+	}
+
+	tryParseWordSuggestions(text: string): string[] | null
+	{
+		const lastIndex = this.getLastMatchIndex(this.noDefinitionPattern, text);
+
+		if (lastIndex === -1)
+		{
+			console.error(`Missing definition output failed to match expected format.`);
+			return null;
+		}
+
+		const suggestions = text.slice(lastIndex).split('  ');
+
+		return suggestions
+	}
+
 	addWordEntry(word: string, editor: Editor)
 	{
 		const dictResult = this.getDictionaryResult(word);
 
 		if (!dictResult) {
+			new Notice(`Couldn't find word: ${word} in the dictionary.`)
 			console.error(`Failed to get dictionary result for ${word}`);
 			return;
 		}
 
-		word = dictResult[0];
+		const definition = this.tryParseDefinition(dictResult)
+
+		// No definition found, attempt to get suggestions
+		if (definition === null)
+		{
+			const suggestions = this.tryParseWordSuggestions(dictResult)
+
+			// No suggestions found
+			if (suggestions === null || suggestions.length < 1)
+			{
+				new Notice(`Couldn't find word: ${word} in the dictionary.`)
+				console.error(`No suggestions given for word ${word}`);
+				return null;
+			}
+
+			new Notice(`Couldn't find word: ${word}, did you mean one of these words?`)
+
+			// Allow user to choose one of the suggestions
+			new WordSuggestionModal(this.app, suggestions, (value: string) => {
+				if (!this.app.workspace.activeEditor || !this.app.workspace.activeEditor.editor)
+				{
+					console.error(`No editor active, expected active editor when replacing selection.`);
+					return;
+				}
+				
+				// Add an entry for the chosen dictionary word
+				this.addWordEntry(value.trim(), this.app.workspace.activeEditor.editor);
+			}).open();
+
+			return;
+		}
+
 		const wordNotePath = `${this.settings.wordDir}/${word}.md`;
 
 		// Replace selection with chosen suggested dictionary word, if one was chosen
 		editor.replaceSelection(word);
 
-		this.createWordNote(wordNotePath, word, dictResult[1]);
+		this.createWordNote(wordNotePath, word, definition);
 	}
 
 	createWordNote(path: string, word: string, text: string)
@@ -100,28 +162,15 @@ export default class ObsidianLexicon extends Plugin {
 		return regex.lastIndex;
 	}
 
-	getDictionaryResult(query: string): string[] | null {
+	getDictionaryResult(query: string): string | null {
 		const { exec } = require('child_process');
 
 		const queryCommand = `/opt/homebrew/bin/dict -d ${this.settings.dictName} ${query}`;
 
 		try {
 			const stdout = execSync(queryCommand).toString();
-
-			console.log(stdout);
-
-			const lastIndex = this.getLastMatchIndex(this.definitionFoundPattern, stdout);
-
-			if (lastIndex === -1)
-			{
-				new Notice(`Error parsing definition output.`);
-				console.error(`Definition output failed to match expected format.`);
-				return null;
-			}
 			
-			const definition = stdout.slice(lastIndex - 1).trim();
-			
-			return [query, definition];
+			return stdout;
 		}
 		catch (err) {
 			switch (err.status) {
@@ -129,37 +178,7 @@ export default class ObsidianLexicon extends Plugin {
 				case 21:
 					const stdout = err.stderr.toString();
 
-					console.log(stdout)
-
-					const lastIndex = this.getLastMatchIndex(this.noDefinitionPattern, stdout);
-
-					if (lastIndex === -1)
-					{
-						new Notice(`Error parsing missing definition output.`);
-						console.error(`Missing definition output failed to match expected format.`);
-						return null;
-					}
-
-					const suggestions = stdout.slice(lastIndex).split('  ');
-
-					if (suggestions.length < 1)
-					{
-						new Notice(`Couldn't find word: ${query} in the dictionary.`)
-						console.error(`No suggestions given for word ${query}`);
-						return null;
-					}
-					
-					new WordSuggestionModal(this.app, suggestions, (value: string) => {
-						if (!this.app.workspace.activeEditor || !this.app.workspace.activeEditor.editor)
-						{
-							console.error(`No editor active, expected active editor when replacing selection.`);
-							return;
-						}
-						
-						// Add an entry for the chosen dictionary word
-						this.addWordEntry(value.trim(), this.app.workspace.activeEditor.editor);
-					}).open();
-					break;
+					return stdout;
 				// All other errors
 				default:
 					console.error(`Failed to execute dict command: ${err.message}`);
