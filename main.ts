@@ -56,7 +56,7 @@ export default class ObsidianLexicon extends Plugin {
 		this.addSettingTab(new ObsidianLexiconSettingsTab(this.app, this));
 	}
 
-	tryParseDefinition(text: string): string | null
+	tryParseDefinitions(text: string): string | null
 	{
 		const matchBounds = this.getNextMatchBounds(this.definitionFoundPattern, text);
 
@@ -66,18 +66,18 @@ export default class ObsidianLexicon extends Plugin {
 			return null;
 		}
 
-		var definition = text.slice(matchBounds[1] - 1).trim();
+		var definitions = text.slice(matchBounds[1] - 1).trim();
 
-		var defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definition);
+		var defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definitions);
 
 		while (defSourceBounds !== null)
 		{
-			definition = definition.substring(0, defSourceBounds[0]) + definition.substring(defSourceBounds[1]);
+			definitions = definitions.substring(0, defSourceBounds[0]) + definitions.substring(defSourceBounds[1]);
 
-			defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definition);
+			defSourceBounds = this.getNextMatchBounds(this.definitionSourcePattern, definitions);
 		}
 
-		return definition
+		return definitions.trim()
 	}
 
 	tryParseWordSuggestions(text: string): string[] | null
@@ -105,7 +105,7 @@ export default class ObsidianLexicon extends Plugin {
 			return;
 		}
 
-		const definition = this.tryParseDefinition(dictResult)
+		const definition = this.tryParseDefinitions(dictResult)
 
 		// No definition found, attempt to get suggestions
 		if (definition === null)
